@@ -1,6 +1,10 @@
-# DataFlow
+<h1 align='center'>DataFlow</h1>
+<p align='center'>Web service for data processing that allows to use component oriented processing based on the wonderful <a href="https://github.com/totaljs/flow">Total.js flow</a> app.</p>
+<p align='center'><a href="https://action-badges.now.sh"><img src="https://action-badges.now.sh/Rarioty/DataFlow" /></a></p>
 
-DataFlow is a web service for data processing. It allows to use component oriented processing based on the wonderful [Total.js flow](https://github.com/totaljs/flow) app. The backend is changed to python to take advantage of python libraries. These components are stored in [another repository](https://github.com/Rarioty/DataFlow-Components).
+## Notes 
+
+The backend is changed to python to take advantage of python libraries. These components are stored in [another repository](https://github.com/Rarioty/DataFlow-Components)
 
 ## Installation
 
