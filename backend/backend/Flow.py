@@ -312,8 +312,22 @@ class Flow:
 
       # TODO: Refresh connections
       self.save()
+    elif message['type'] == 'clearerrors':
+      for ist in self.instances:
+        self.instances[ist].errors = {}
+
+      self.save()
+      self.sendMessage(MESSAGE_CLEARERRORS)
+    elif message['type'] == 'install':
+      # New component
+      if 'body' not in message:
+        message['body'] = None
+      self.install(message['filename'], message['body'])
     else:
       logging.warn('Message type unknown [%s] -> dropping...' % (message['type'],))
+
+  def install(self, filename, body):
+    """Does nothing"""
 
   def updateVariables(self, body):
     # Parse variables and update them

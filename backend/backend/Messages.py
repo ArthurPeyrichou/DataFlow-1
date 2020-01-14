@@ -21,3 +21,9 @@ MESSAGE_TRAFFIC = {
 MESSAGE_ONLINE = {
   'type': 'online'
 }
+MESSAGE_ERROR = {
+  'type': 'errors'
+}
+MESSAGE_CLEARERRORS = {
+  'type': 'clearerrors'
+}

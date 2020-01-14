@@ -14,7 +14,11 @@ def onOptions(instance, *args):
   elif instance.options['datatype'] == 'boolean':
     instance.custom['value'] == bool(instance.options['data'])
   elif instance.options['datatype'] == 'object':
-    instance.custom['value'] = json.loads(instance.options['data'])
+    try:
+      instance.custom['value'] = json.loads(instance.options['data'])
+    except Exception as e:
+      instance.error(str(e))
+      return
   elif instance.options['datatype'] == 'string':
     instance.custom['value'] = instance.options['data']
   else:

@@ -41,6 +41,9 @@ class Component:
     self.countOutputs = 0
     self.outputComponentAlreadyListed = {}
 
+    # Errors
+    self.errors = {}
+
   def setPos(self, x, y):
     self.x = x
     self.y = y
@@ -116,6 +119,30 @@ class Component:
         return
 
       self.sendToIndex(data, index)
+
+  def error(self, error, parent=None):
+    key = None
+
+    if isinstance(parent, Component):
+      key = parent.id
+    elif parent is not None:
+      key = parent
+    else:
+      key = 'error'
+
+    if key not in self.errors:
+      self.errors[key] = { 'count': 0 }
+    self.errors[key]['error'] = error
+    self.errors[key]['count'] += 1
+
+    MESSAGE_ERROR['id'] = self.id
+    MESSAGE_ERROR['body'] = self.errors
+
+    self.flow.sendMessage(MESSAGE_ERROR)
+    self.throw(error)
+
+    if 'error' in self.events:
+      self.emit('error', error, parent)
 
   def throw(self, data):
     self.send(data, 99)

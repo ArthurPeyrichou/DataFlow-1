@@ -283,4 +283,7 @@ $RECYCLE.BIN/
 # Frontend
 frontend/flow
 
+# Backend
+backend/.flow
+
 # End of https://www.gitignore.io/api/node,linux,macos,python,windows
