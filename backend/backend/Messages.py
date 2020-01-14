@@ -21,8 +21,11 @@ MESSAGE_TRAFFIC = {
 MESSAGE_ONLINE = {
   'type': 'online'
 }
-MESSAGE_ERROR = {
+MESSAGE_ERRORS = {
   'type': 'errors'
+}
+MESSAGE_ERROR = {
+  'type': 'error'
 }
 MESSAGE_CLEARERRORS = {
   'type': 'clearerrors'

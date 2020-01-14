@@ -135,10 +135,10 @@ class Component:
     self.errors[key]['error'] = error
     self.errors[key]['count'] += 1
 
-    MESSAGE_ERROR['id'] = self.id
-    MESSAGE_ERROR['body'] = self.errors
+    MESSAGE_ERRORS['id'] = self.id
+    MESSAGE_ERRORS['body'] = self.errors
 
-    self.flow.sendMessage(MESSAGE_ERROR)
+    self.flow.sendMessage(MESSAGE_ERRORS)
     self.throw(error)
 
     if 'error' in self.events:

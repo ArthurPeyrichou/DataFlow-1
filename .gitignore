@@ -285,5 +285,6 @@ frontend/flow
 
 # Backend
 backend/.flow
+backend/backend/components/*
 
 # End of https://www.gitignore.io/api/node,linux,macos,python,windows

@@ -6,6 +6,7 @@ from .Messages import *
 import dateutil.parser
 import importlib.util
 import urllib.parse
+import requests
 import logging
 import psutil
 import json
@@ -327,7 +328,47 @@ class Flow:
       logging.warn('Message type unknown [%s] -> dropping...' % (message['type'],))
 
   def install(self, filename, body):
-    """Does nothing"""
+    componentsPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'components/')
+
+    # Check if the filename is an URL
+    if filename[:6] == 'http:/' or filename == 'https:':
+      # Fill body variable
+      r = requests.get(filename)
+      body = r.content
+
+      filename = os.path.basename(urllib.parse(filename))
+
+    if filename[-3:] != '.py':
+      logging.warn('File not ending with .py [%s] dropping...' % (filename,))
+      return
+
+    saved = False
+    filepath = os.path.join(componentsPath, filename)
+    if os.path.exists(filepath):
+      os.rename(filepath, filepath + '-save')
+      saved = True
+    
+    with open(filepath, 'w') as file:
+      file.write(body)
+      file.close()
+
+    # Check if exports of the file contains install func
+    try:
+      spec = importlib.util.spec_from_file_location('components', filepath)
+      mod = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(mod)
+
+      if not hasattr(mod, 'EXPORTS') or 'install' not in mod.EXPORTS:
+        logging.warn('Imported module not in the right format. No install function...')
+        MESSAGE_ERROR['body'] = 'Incorrect module, no install functions in EXPORTS variable !'
+        self.sendMessage(MESSAGE_ERROR)
+        os.remove(filepath)
+        if saved:
+          os.rename(filepath + '-save', filepath)
+    except Exception as e:
+      logging.error('Error while importing file [%s]: %s' % (filename, e))
+      MESSAGE_ERROR['body'] = str(e)
+      self.sendMessage(MESSAGE_ERROR)
 
   def updateVariables(self, body):
     # Parse variables and update them

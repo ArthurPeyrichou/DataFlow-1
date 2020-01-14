@@ -11,7 +11,7 @@ ADD . /app/
 RUN export HTTP_PROXY=$HTTP_PROXY
 RUN export HTTPS_PROXY=$HTTPS_PROXY
 
-RUN pip install python-dateutil psutil
+RUN pip install -r requirements.txt
 
 EXPOSE 5001
 
