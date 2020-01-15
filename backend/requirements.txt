@@ -1,5 +1,5 @@
 requests
 python-dateutil
 psutil
-dateutil
+python-dateutil
 wget
