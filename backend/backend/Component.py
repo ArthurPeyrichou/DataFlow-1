@@ -106,19 +106,21 @@ class Component:
     self.outputComponentAlreadyListed = {}
 
     if index is None:
-      self.flow.updateTraffic(self.id, 'output', None, 0)
       # Send through all outputs
       # {'0': [{'index': '0', 'id': '1578503223401'}]}
       for conn in self.connections:
         if conn != '99': # Ignore bug output
+          self.flow.updateTraffic(self.id, 'output', None, conn, size=data.getSize())
           self.sendToIndex(data, conn)
     else:
-      self.flow.updateTraffic(self.id, 'output', None, index)
+      self.flow.updateTraffic(self.id, 'output', None, index, size=data.getSize())
       if index not in self.connections:
         logging.warn('No output connection with this index [%s] -> dropping...' % (index,))
         return
 
       self.sendToIndex(data, index)
+
+    # self.flow.sendTrafficMessage()
 
   def error(self, error, parent=None):
     key = None
@@ -166,12 +168,19 @@ class Component:
 
       if ist.id not in self.outputComponentAlreadyListed:
         self.outputComponentAlreadyListed[ist.id] = True
-        self.flow.updateTraffic(ist.id, 'input', False)
+        self.flow.updateTraffic(ist.id, 'input', False, size=data.getSize())
 
       if ist.id in self.flow.traffic:
         self.flow.traffic[ist.id]['ci'] = ist.countInputs
 
+      self.flow.sendTrafficMessage()
+
+      # Keep trace of data send
+      self.flow.onGoing += 1
       ist.emit('data', data)
+      self.flow.onGoing -= 1
+      if self.flow.onGoing == 0:
+        self.flow.resetTraffic()
 
   def save(self):
     objToSave = {

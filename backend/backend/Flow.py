@@ -43,18 +43,19 @@ class Flow:
     self.traffic = {
       'count': 0
     }
+    self.onGoing = 0
 
     logging.info('-- Loading designer --')
     self.load()
     logging.info('------- Loaded -------')
 
     # Send traffic messages
-    Timer(2.0, lambda: Flow.sendTrafficMessage(self)).start()
+    Timer(1.0, lambda: Flow.sendTrafficMessage(self)).start()
 
   def sendTrafficMessage(self):
     MESSAGE_TRAFFIC['body'] = self.traffic
-
     MESSAGE_TRAFFIC['memory'] = str(psutil.Process(os.getpid()).memory_info()[0] / float(2 ** 20)) + 'MB'
+    MESSAGE_TRAFFIC['counter'] += 1
 
     self.sendMessage(MESSAGE_TRAFFIC)
 
@@ -63,18 +64,87 @@ class Flow:
       if key == 'count':
         continue
       item = self.traffic[key]
-
-      if item['ni']:
-        item['input'] -= item['ni']
-      if item['no']:
-        item['output'] -= item['no']
-      item['ni'] = 0
-      item['no'] = 0
       for k in item:
         if k.startswith('no'):
           item[k] = 0
 
-    Timer(2.0, lambda: Flow.sendTrafficMessage(self)).start()
+    #   if item['ni']:
+    #     item['input'] -= item['ni']
+    #   if item['no']:
+    #     item['output'] -= item['no']
+      item['ni'] = 0
+      item['no'] = 0
+
+  def resetTraffic(self):
+    self.traffic = { 'count':  0 }
+    MESSAGE_TRAFFIC['body'] = self.traffic
+    MESSAGE_TRAFFIC['counter'] = 0
+
+  def selfRegisterComponent(self, mod, file):
+    try:
+      exports = mod.EXPORTS
+      if 'id' not in exports:
+        logging.warn('Component %s do not possess id, dropping...' % (file,))
+        return False
+      if 'install' in exports:
+        installFN = exports['install']
+      else:
+        installFN = None
+
+      # Storing component into component library
+      if exports['id'] in self.componentLibrary:
+        logging.warn('Component ID already registered [%s] -> replacing' % (file,))
+
+      # Create component obj
+      obj = dict(exports)
+      obj['component'] = file.split('.py')[0]
+      obj['name'] = exports['title'] if 'title' in exports else file.split('.py')[0]
+      obj['author'] = exports['author'] if 'author' in exports else 'No author'
+      obj['color'] = exports['color'] if 'color' in exports else '#000000'
+      if 'icon' in exports:
+        if str(exports['icon']).startswith('fa-'):
+          obj['icon'] = exports['icon'][:2]
+        else:
+          obj['icon'] = exports['icon']
+      else:
+        obj['icon'] = ''
+      obj['input'] = exports['input'] if 'input' in exports and exports['input'] is not None else 0
+      obj['output'] = exports['output'] if 'output' in exports and exports['output'] is not None else 0
+      obj['click'] = True if 'click' in exports and exports['click'] else False
+      obj['group'] = exports['group'] if 'group' in exports else 'Common'
+      obj['state'] = exports['state'] if 'state' in exports else None
+      obj['fn'] = installFN
+      obj['readme'] = exports['readme'] if 'readme' in exports else ''
+      obj['html'] = exports['html'] if 'html' in exports else ''
+      obj['traffic'] = False if 'traffic' in exports and not exports['traffic'] else True
+      obj['variables'] = True if 'variables' in exports and exports['variables'] else False
+      obj['filename'] = file.split('.py')[0]
+      self.componentLibrary[exports['id']] = obj
+
+      data = dict(obj)
+      data['fn'] = None
+      data['readme'] = None
+      data['html'] = None
+      data['install'] = None
+      data['uninstall'] = None
+      if 'options' in data:
+        data['options']['install'] = None
+        data['options']['uninstall'] = None
+
+      index = next(
+        (i for i, item in enumerate(MESSAGE_DESIGNER['database']) if item['id'] == exports['id']),
+        -1
+      )
+
+      if index == -1:
+        MESSAGE_DESIGNER['database'].append(data)
+      else:
+        MESSAGE_DESIGNER['database'][index] = data
+    except Exception as e:
+      logging.warn('Exception while loading component [%s]: %s -> droppping...' % (file,e))
+      return False
+
+    return True
 
   def load(self):
     variableFile = os.path.join(self.appPath, 'variables')
@@ -92,71 +162,8 @@ class Flow:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
-        try:
-          exports = mod.EXPORTS
-          if 'id' not in exports:
-            logging.warn('Component %s do not possess id, dropping...' % (file,))
-            continue
-          if 'install' in exports:
-            installFN = exports['install']
-          else:
-            installFN = None
-
-          # Storing component into component library
-          if exports['id'] in self.componentLibrary:
-            logging.warn('Component ID already registered [%s] -> dropping' % (file,))
-            continue
-
-          # Create component obj
-          obj = dict(exports)
-          obj['component'] = file.split('.py')[0]
-          obj['name'] = exports['title'] if 'title' in exports else file.split('.py')[0]
-          obj['author'] = exports['author'] if 'author' in exports else 'No author'
-          obj['color'] = exports['color'] if 'color' in exports else '#000000'
-          if 'icon' in exports:
-            if str(exports['icon']).startswith('fa-'):
-              obj['icon'] = exports['icon'][:2]
-            else:
-              obj['icon'] = exports['icon']
-          else:
-            obj['icon'] = ''
-          obj['input'] = exports['input'] if 'input' in exports and exports['input'] is not None else 0
-          obj['output'] = exports['output'] if 'output' in exports and exports['output'] is not None else 0
-          obj['click'] = True if 'click' in exports and exports['click'] else False
-          obj['group'] = exports['group'] if 'group' in exports else 'Common'
-          obj['state'] = exports['state'] if 'state' in exports else None
-          obj['fn'] = installFN
-          obj['readme'] = exports['readme'] if 'readme' in exports else ''
-          obj['html'] = exports['html'] if 'html' in exports else ''
-          obj['traffic'] = False if 'traffic' in exports and not exports['traffic'] else True
-          obj['variables'] = True if 'variables' in exports and exports['variables'] else False
-          obj['filename'] = file.split('.py')[0]
-          self.componentLibrary[exports['id']] = obj
-
-          data = dict(obj)
-          data['fn'] = None
-          data['readme'] = None
-          data['html'] = None
-          data['install'] = None
-          data['uninstall'] = None
-          if 'options' in data:
-            data['options']['install'] = None
-            data['options']['uninstall'] = None
-
-          index = next(
-            (i for i, item in enumerate(MESSAGE_DESIGNER['database']) if item['id'] == exports['id']),
-            -1
-          )
-
-          if index == -1:
-            MESSAGE_DESIGNER['database'].append(data)
-          else:
-            MESSAGE_DESIGNER['database'][index] = data
-        except Exception as e:
-          logging.warn('Exception while loading component [%s]: %s -> droppping...' % (file,e))
-          continue
-
-        nbComponentsLoaded += 1
+        if self.selfRegisterComponent(mod, file):
+          nbComponentsLoaded += 1
     logging.info('%d components loaded' % (nbComponentsLoaded,))
 
     # Testing files
@@ -365,10 +372,20 @@ class Flow:
         os.remove(filepath)
         if saved:
           os.rename(filepath + '-save', filepath)
+
+        return
+
+      self.selfRegisterComponent(mod, filename)
+
+      if saved:
+        os.remove(filepath + '-save')
+
+      self.sendMessage(MESSAGE_DESIGNER)
     except Exception as e:
       logging.error('Error while importing file [%s]: %s' % (filename, e))
       MESSAGE_ERROR['body'] = str(e)
       self.sendMessage(MESSAGE_ERROR)
+      return
 
   def updateVariables(self, body):
     # Parse variables and update them
@@ -498,7 +515,7 @@ class Flow:
         logging.warn('Component already existing [%s] -> dropping...' % (comID,))
         return None
 
-  def updateTraffic(self, id, type, count, index=None):
+  def updateTraffic(self, id, type, count, index=None, size=1):
     if not id in self.traffic:
       self.traffic[id] = {
         'input': 0,
@@ -514,7 +531,7 @@ class Flow:
     if type == 'pending' or type == 'duration' or type == 'ci' or type == 'co':
       self.traffic[id][type] = count
     elif type == 'output':
-      self.traffic[id][type] += 1
+      self.traffic[id][type] += size # 1
       self.traffic[id]['no'] += 1
 
       if index is not None:
@@ -526,7 +543,7 @@ class Flow:
       self.traffic['count'] += 1
     elif type == 'input':
       if count is not True:
-        self.traffic[id][type] += 1
+        self.traffic[id][type] += size # 1
       self.traffic[id]['ni'] += 1
     else:
       self.traffic[id][type] += 1

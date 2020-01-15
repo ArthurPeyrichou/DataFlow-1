@@ -1,3 +1,5 @@
+import sys
+
 class Payload:
   counter = 0
   def __init__(self, data, clone=None):
@@ -5,3 +7,6 @@ class Payload:
     self.data = data
 
     Payload.counter += 1
+
+  def getSize(self):
+    return sys.getsizeof(self.data)

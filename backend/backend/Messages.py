@@ -16,7 +16,8 @@ MESSAGE_DEBUG = {
   'type': 'debug'
 }
 MESSAGE_TRAFFIC = {
-  'type': 'traffic'
+  'type': 'traffic',
+  'counter': 0
 }
 MESSAGE_ONLINE = {
   'type': 'online'
