@@ -97,7 +97,7 @@ class Component:
 
   def send(self, data, index=None):
     if not isinstance(data, Payload):
-      data = Payload(data)
+      data = Payload(data, self.id)
 
     if index is not None:
       index = str(index)
@@ -151,6 +151,7 @@ class Component:
 
   def sendToIndex(self, data, index):
     targets = self.connections[str(index)]
+    data.fromIdx = index
     # targets -> [{'index': '0', 'id': '1578503223401'}]
     for t in targets:
       if t['id'] not in self.flow.instances:
@@ -158,6 +159,9 @@ class Component:
         continue
       
       ist = self.flow.instances[t['id']]
+
+      # Update payload infos
+      data.toID = ist.id
 
       # Disable inputs
       if t['index'] in ist.disabledio['input']:
@@ -177,6 +181,7 @@ class Component:
 
       # Keep trace of data send
       self.flow.onGoing += 1
+      data.toIdx = t['index']
       ist.emit('data', data)
       self.flow.onGoing -= 1
       if self.flow.onGoing == 0:
